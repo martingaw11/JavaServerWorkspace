@@ -72,7 +72,7 @@ set CLASSPATH=%APP_HOME%\lib\MakeShiftServer-1.0.jar;%APP_HOME%\lib\gson-2.10.1.
 
 
 @rem Execute MakeShiftServer
-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %MAKE_SHIFT_SERVER_OPTS%  -classpath "%CLASSPATH%" ServerS %*
+"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %MAKE_SHIFT_SERVER_OPTS%  -classpath "%CLASSPATH%" Server %*
 
 :end
 @rem End local scope for the variables with windows NT shell
