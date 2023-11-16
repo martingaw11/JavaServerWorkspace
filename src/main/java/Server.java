@@ -13,6 +13,7 @@ import models.GsonDataModel;
 public class Server {
 
     private static GsonDataModel sharedDataModel = new GsonDataModel();
+    private static boolean isClientReady = false;
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(8049);
@@ -33,7 +34,14 @@ public class Server {
 
                 clientHandlerExecutor.submit(() -> {
                     try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                         PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
+                        PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
+                        System.out.println("Connection Status: " + isClientReady);
+                        // Wait for a ready signal from client
+                        while (!isClientReady) {
+                            String readySignal = in.readLine();
+                            isClientReady = readySignal != null && readySignal.trim().equals("ready");
+                            System.out.println("Connection Status: " + isClientReady);
+                        }
 
                         String received;
                         while ((received = in.readLine()) != null) {
@@ -59,23 +67,22 @@ public class Server {
                 // Start a separate thread for continuously sending GsonDataModel to the client
                 dataSendingExecutor.submit(() -> {
                     try {
-                        while (true) {
-                            try {
-                                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                                sendGsonDataModelToClient(sharedDataModel, out);
-                                // Adjust the sleep duration based on your requirements
-                                Thread.sleep(70);
-                            }
-                            catch (SocketException se) {
-                                System.out.println("Breaking Data->Client Connection.");
-                                break;
-                            }
-                            catch (IOException e) {
-                                e.printStackTrace();
-                            }
+                        PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+
+                        while (!isClientReady) {
+                            System.out.println("Waiting for Client to be ready...");
+                            Thread.sleep(70);
+                        }
+                        while (isClientReady) {
+                            sendGsonDataModelToClient(sharedDataModel, out);
+                            // Adjust the sleep duration based on your requirements
+                            Thread.sleep(70);
                         }
                     }
-                    catch (InterruptedException e) {
+                    catch (SocketException se) {
+                        System.out.println("Breaking Command->Client Connection...");
+                    }
+                    catch (InterruptedException | IOException e) {
                         e.printStackTrace();
                     }
                 });
@@ -108,6 +115,7 @@ public class Server {
         // Example:
         if (command.equals("exit")) {
             System.out.print("Client has disconnected...");
+            isClientReady = false;
             try {
                 clientSocket.close();
             }
